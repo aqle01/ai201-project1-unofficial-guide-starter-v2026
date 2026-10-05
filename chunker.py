@@ -96,8 +96,84 @@ def split_documents(documents: list[Document]) -> list[Chunk]:
       - Is the useful information in one sentence, or spread over a paragraph?
       - Would splitting on paragraph breaks keep more thoughts intact than
         splitting on a character count?
+
+    Strategy for city_guides: one chunk per "## " section.
+
+    Every guide is a "# Title" followed by labelled sections (Getting there,
+    Eat and drink, When to go...). Sections run 177–712 characters and each
+    one is about a single topic, so a section is already the right unit — the
+    800-character fallback sliced straight through them.
+
+    A section on its own often doesn't say which town it's about ("No railway
+    station; the line was closed in 1963..."), so every chunk starts with
+    "Title — Section heading". That prefix is the context overlap would
+    otherwise have to carry, so neighbouring sections share no text.
+
+    Any section longer than CHUNK_SIZE is split at sentence boundaries, with
+    SECTION_OVERLAP_SENTENCES sentences repeated between the pieces. No
+    section in city_guides is that long today; this is the safety net.
     """
-    return fallback_split(documents)
+    import re
+
+    chunks: list[Chunk] = []
+    for doc in documents:
+        title, _, body = doc.text.partition("\n")
+        title = title.lstrip("# ").strip() if title.startswith("# ") else doc.source
+        if not doc.text.startswith("# "):
+            body = doc.text
+
+        pieces: list[str] = []
+        for section in re.split(r"\n(?=## )", body):
+            section = section.strip()
+            if not section:
+                continue
+            if section.startswith("## "):
+                heading, _, text = section.partition("\n")
+                heading = heading[3:].strip()
+            else:
+                heading, text = "Overview", section   # intro before the first ##
+            text = text.strip()
+            if not text:
+                continue
+            prefix = f"{title} — {heading}\n\n"
+            for part in _pack(text, config.CHUNK_SIZE - len(prefix), config.SECTION_OVERLAP_SENTENCES):
+                pieces.append(prefix + part)
+
+        for index, piece in enumerate(pieces):
+            chunks.append(
+                Chunk(
+                    text=piece,
+                    source=doc.source,
+                    index=index,
+                    produced_by="chunker.py::split_documents",
+                )
+            )
+
+    return chunks
+
+
+def _pack(text: str, limit: int, overlap_sentences: int) -> list[str]:
+    """
+    Return `text` whole if it fits in `limit`, otherwise pack its sentences
+    into pieces under `limit`, repeating the last `overlap_sentences`
+    sentences of each piece at the start of the next. Never cuts mid-sentence.
+    """
+    import re
+
+    if len(text) <= limit:
+        return [text]
+
+    sentences = re.split(r"(?<=[.!?])\s+", text)
+    pieces: list[str] = []
+    current: list[str] = []
+    for sentence in sentences:
+        if current and len(" ".join(current + [sentence])) > limit:
+            pieces.append(" ".join(current))
+            current = current[-overlap_sentences:] if overlap_sentences else []
+        current.append(sentence)
+    if current:
+        pieces.append(" ".join(current))
+    return pieces
 
 
 def describe(chunks: list[Chunk]) -> str:

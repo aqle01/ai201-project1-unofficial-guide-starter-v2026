@@ -27,8 +27,15 @@ CORPUS = os.getenv("AI201_CORPUS", "city_guides")
 # These are deliberately plain, generic numbers. Milestone 3 is where you
 # replace them with numbers that fit the documents you actually read.
 
-CHUNK_SIZE = 800        # characters per chunk
-CHUNK_OVERLAP = 120     # characters shared between neighbouring chunks
+CHUNK_SIZE = 800        # characters per chunk — for split_documents, a cap:
+                        # one chunk per "## " section, and sections only get
+                        # split if they're longer than this (none are today)
+CHUNK_OVERLAP = 120     # characters shared between neighbouring chunks —
+                        # used only by fallback_split
+SECTION_OVERLAP_SENTENCES = 1   # split_documents: sentences repeated when an
+                                # oversized section has to be split. Whole
+                                # sections share nothing — each chunk carries
+                                # its "Title — Section" prefix instead
 
 
 # ─── Retrieval (Milestone 4) ─────────────────────────────────────────────────

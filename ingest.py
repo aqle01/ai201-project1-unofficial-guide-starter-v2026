@@ -37,7 +37,59 @@ def clean_text(raw: str) -> str:
     # Collapse repeated spaces and tabs, but keep line structure intact.
     text = re.sub(r"[ \t]{2,}", " ", text)
 
+    # Some guides are hard-wrapped at ~80 columns and some aren't. Rejoin
+    # wrapped lines so a paragraph is one line, but never glue a line onto a
+    # heading or start a heading mid-paragraph.
+    lines: list[str] = []
+    for line in text.split("\n"):
+        joinable = (
+            lines
+            and lines[-1]
+            and line
+            and not lines[-1].startswith("#")
+            and not line.startswith("#")
+        )
+        if joinable:
+            lines[-1] = f"{lines[-1]} {line.strip()}"
+        else:
+            lines.append(line)
+    text = "\n".join(lines)
+
     return text.strip()
+
+
+# Sections that appear word-for-word in at least this many documents are
+# template boilerplate, not content. In city_guides every town guide ends with
+# the same "Practical notes" block — which even claims the nearest hospital is
+# in Brightwater inside the Brightwater guide, and contradicts
+# guide_accessibility.md (Marchwood). Left in, it is nine identical chunks that
+# match every "hospital" or "cash" question equally and point at no real town.
+BOILERPLATE_MIN_DOCS = 3
+
+
+def _sections(text: str) -> list[str]:
+    """Split on level-2 headings, keeping each heading with its body."""
+    return re.split(r"\n(?=## )", text)
+
+
+def strip_boilerplate(documents: list[Document]) -> list[Document]:
+    """Drop any section whose exact text repeats across many documents."""
+    from collections import Counter
+
+    counts = Counter(
+        section
+        for doc in documents
+        for section in {s.strip() for s in _sections(doc.text)[1:]}
+    )
+    repeated = {s for s, n in counts.items() if n >= BOILERPLATE_MIN_DOCS}
+    if not repeated:
+        return documents
+
+    cleaned = []
+    for doc in documents:
+        kept = [s for s in _sections(doc.text) if s.strip() not in repeated]
+        cleaned.append(Document(source=doc.source, text="\n".join(kept).strip()))
+    return cleaned
 
 
 def load_documents(corpus: str | None = None) -> list[Document]:
@@ -67,7 +119,7 @@ def load_documents(corpus: str | None = None) -> list[Document]:
     if not documents:
         raise ValueError(f"{folder} has no .txt or .md files in it.")
 
-    return documents
+    return strip_boilerplate(documents)
 
 
 def describe(documents: list[Document]) -> str:
