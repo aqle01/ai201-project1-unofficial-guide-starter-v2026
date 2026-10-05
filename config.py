@@ -50,7 +50,12 @@ TOP_K = 5               # how many chunks to pull back per question
 # 0.6 is a reasonable starting point, not a right answer. Milestone 4 has you
 # measure your own two groups of distances and put the cutoff in the gap.
 # Most corpora land somewhere between 0.45 and 0.75.
-THRESHOLD = 0.6
+# Measured in Milestone 4 against section chunks: my five test questions had
+# best distances 0.160-0.575, the five OUT_OF_SCOPE ones 0.810-0.969. 0.70 sits
+# near the middle of that gap. 0.6 left only 0.025 of room above the bus
+# question. Near-miss travel questions the guides don't answer ("ferry from
+# Halden Bay?") land at 0.41-0.48, so those are the prompt's job, not the gate's.
+THRESHOLD = 0.70
 
 
 # ─── Models ──────────────────────────────────────────────────────────────────
