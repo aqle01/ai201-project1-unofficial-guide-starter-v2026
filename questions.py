@@ -23,11 +23,21 @@ names a target of "4 of 5", and four of three is not a thing.
 
 QUESTIONS = [
     # {"question": "...", "expects": "..."},
-    {"question": "", "expects": ""},
-    {"question": "", "expects": ""},
-    {"question": "", "expects": ""},
-    {"question": "", "expects": ""},
-    {"question": "", "expects": ""},
+    # Answer sits in one section of one town guide (Eat and drink).
+    {"question": "Until what time do the pubs in Kestrelford serve food in the evening?",
+     "expects": "8:30"},
+    # Answer is in two places: Elder Ness "Getting there" and the walking guide.
+    {"question": "How many times a year does the road to Elder Ness flood?",
+     "expects": "six times"},
+    # Answer is in Halden Bay "Getting there", regional transport, and seasons.
+    {"question": "By what time do the Halden Bay car parks fill up on summer weekends?",
+     "expects": "10am"},
+    # Cross-cutting guide: answer only in guide_accessibility.md, inside a bolded list.
+    {"question": "Which town in the region is easiest to get around with limited mobility?",
+     "expects": "Thornby Wells"},
+    # Answer only in guide_regional_transport.md, which has no town name in its title.
+    {"question": "How many bus operators run in the region, and do they accept each other's tickets?",
+     "expects": "three"},
 ]
 
 # Questions from a different world entirely. Your gate should refuse all five.
