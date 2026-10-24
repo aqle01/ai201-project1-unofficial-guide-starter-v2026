@@ -184,6 +184,28 @@ What 0.70 gets wrong, which I checked on extra questions:
 
 **2.**
 
+**Unit 2.** I used Claude Code (Claude Opus) as a coding agent for this unit.
+
+- *Running and scoring the test.* It ran `run_eval.py` for both run logs and
+  turned the per-question results into the per-criterion tables. It also
+  checked every cited file for the answer phrase for criterion 5. I checked
+  the tables against the results files before committing.
+- *Spotting the pattern in the failures.* I asked it to diagnose the one
+  ranking miss. It guessed the `Title — Section` prefix was matching the
+  question, then tested that instead of asserting it. It wrote
+  `diagnose_prefix.py` to embed each chunk with and without its prefix. The
+  result was the key number in my diagnosis: the Overview body alone is 0.897,
+  with the prefix 0.386. It also pointed out the same pattern in the Halden Bay
+  and bus results, where a short chunk on the right topic outranks the answer.
+- *Choosing the fix.* Before the full re-run, it compared three chunkings
+  using embeddings only. That showed folding the intro beat dropping it
+  (rank 1 against rank 3) without spending model calls on a fix that wouldn't
+  work.
+- *Writing.* It drafted criteria 4 and 5 as options for me to choose from,
+  wrote the "why this target" reasons for criteria 1–3, and drafted most of
+  the unit 2 write-up. It flagged that criteria 4 and 5 were written after the
+  run had started, which is why that's noted above.
+
 <!-- ── Stretch features ─────────────────────────────────────────────────────
      Doing one? Say so here BEFORE you start. A feature this README never
      claims earns nothing.
@@ -621,6 +643,48 @@ Two other side effects:
      not.
 
      Milestone 5. -->
+
+No criterion is missed after the fix, so nothing here is a missed target. These
+are the problems that my criteria don't catch.
+
+**1. Retrieval ranks topic over facts, and my fix didn't touch that.**
+The Halden Bay answer is 3rd now: "When to go" talks about "the parking
+problem" without giving a time, and it still ranks above "Getting there", which
+gives the 10am figure. My fix removed one short, empty chunk. It didn't change
+how the embedding ranks a chunk that's on the topic against one that holds the
+answer. Against my tightened criterion 1 (answer in the top-ranked chunk) I'm
+at 4/5. What I'd do: add BM25 keyword search alongside the embedding and
+combine the two rankings. "summer weekends" and "fill" appear word for word in
+the answer sentence and not in "When to go". I stopped because the course asked
+for one change measured properly. Adding hybrid search on top would have made
+it impossible to tell which change moved which number.
+
+**2. Paraphrased questions are refused even when the answer is in the
+corpus.** "Can I use my bus ticket from one company on another company bus?"
+asks the same thing as my bus question, but its best distance is 0.813, so the
+gate refuses it. The Buses chunk with the answer is only 3rd, at 0.852. My
+five test questions use the corpus's own words ("operators", "tickets"), so
+none of my criteria would ever catch this. Lowering the cutoff isn't the fix:
+the in-corpus and out-of-corpus distances overlap here. BM25 wouldn't help
+much either, because the paraphrase avoids the corpus's words. What I'd try is
+query rewriting, asking the model to restate the question in the guide's terms
+before retrieval. I stopped because it costs an extra model call per question,
+and it's a second change I couldn't measure separately in this unit.
+
+**3. Near-miss questions depend entirely on the prompt.** "Is there a ferry
+from Halden Bay to France?" gets past the gate (0.438) because it names a real
+town, and only `GROUNDING_INSTRUCTION` stops the model inventing an answer.
+None of my five criteria measure this: criterion 3 only uses questions that are
+obviously off-topic. I didn't re-run the near-miss questions in this unit, so I
+don't know if the prompt still holds three times out of three.
+
+**4. My fix created a new short chunk.** Folding the intro made the
+accessibility guide's first section longer than 800 characters, so `_pack`
+splits off a two-sentence tail about Brightwater's station. That's the same
+kind of short, prefix-heavy chunk I just diagnosed. It hasn't caused a problem
+on any question I tested. The fix would be to let a section run a little over
+the cap rather than split off a small tail. I left it because it hasn't failed
+anything I tested, and changing it now would be a second change.
 
 ## What I'd Do Differently
 
