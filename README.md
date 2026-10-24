@@ -692,3 +692,24 @@ anything I tested, and changing it now would be a second change.
      differently, and why?
 
      Milestone 5. -->
+
+**Criterion 1 was too easy, and I'd rewrite it as "the top-ranked chunk
+contains the answer for at least 4 of 5".** "Somewhere in the top 5" passed
+5/5 even while the mobility answer sat 4th behind a chunk with no facts. With
+whole sections as chunks, five results from the right guide will often contain
+the answer by luck. My system scored 3/5 on the rank-1 version before the fix
+and 4/5 after. That number would actually have shown the problem and the
+improvement.
+
+**Criterion 3 tests the wrong kind of question.** Mongolia, ibuprofen and the
+World Cup are nowhere near a coastal travel guide, so the gate was always going
+to refuse them. The hard cases are near-misses that name a real town (the
+ferry to France) and paraphrases of questions the corpus can answer (the bus
+ticket one). I'd split it in two: one criterion for near-misses refused by the
+system as a whole (gate or prompt), and one for paraphrases answered rather
+than refused.
+
+**I'd write criteria 4 and 5 in unit 1 like the others.** I wrote them at the
+start of this unit. I picked them before seeing any results, but by then the
+run had already started. They should have been fixed in writing before any
+test existed, so no one has to take my word for the timing.
