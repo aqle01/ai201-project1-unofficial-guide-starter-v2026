@@ -358,11 +358,17 @@ extra files it cites contain the answer too:
 
 | # | Criterion | Verdict | How I decided |
 |---|---|---|---|
-| 1 |  |  |  |
-| 2 |  |  |  |
-| 3 |  |  |  |
-| 4 |  |  |  |
-| 5 |  |  |  |
+| 1 | Retrieved chunks contain the answer (4 of 5) | MET | For each question I found which chunk holds the `expects` phrase and checked it was among the five retrieved. It was for all five questions on all three runs (5, 5, 5). Retrieval gave the same distances every run, so this isn't luck on one pass. |
+| 2 | Every answer names a source (5 of 5) | MET | All 15 answers end with a `Source:` line naming at least one file. I read every one in the results file instead of assuming the prompt instruction worked. |
+| 3 | Gate stops out-of-corpus questions (4 of 5) | MET | `gate.py::check` refused all five `OUT_OF_SCOPE` questions, and a refused question returns `gate.REFUSAL`, "I don't have enough information about that.", which is the exact wording my criterion asks for. The margin is thin: Mongolia scored 0.810 against a 0.70 cutoff. |
+| 4 | Answer chunk ranks in the top 3 (4 of 5) | MET, at the edge | 4, 4, 4 against a target of 4. The target holds on every run, so it's met, but with no room to spare. The mobility question misses every time: its answer chunk is 4th, behind the accessibility Overview chunk, which has no facts in it. One more question like that and this is MISSED. |
+| 5 | `Source:` names a file that contains the answer (4 of 5) | MET | For every file each answer cited, I searched it for the answer phrase ("8:30", "six times", "10am", "Thornby Wells", "Three operators"). All five answers cite a file that contains it, on all three runs, and no answer cites a file that doesn't. |
+
+No revisions. Every criterion could be measured the same way twice, from the
+results file plus `python app.py retrieve`, so none of them was broken.
+Criterion 1 turned out easy to meet: top 5 is a loose window when chunks are
+whole sections. Criterion 4, the stricter top-3 version, is the one that shows
+the real weakness.
 
 ## Diagnoses
 
