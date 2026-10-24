@@ -23,8 +23,13 @@ For at least 4 of my 5 test questions, the retrieved chunks include one that
 contains the answer.
 
 **Why this target:**
-<!-- e.g. "One of my questions is about a topic only two documents mention, so
-     I expect that one to be hard." -->
+Four of my questions ask about a fact in a section headed with its town's name,
+like "Kestrelford — Eat and drink". Section chunks carry that heading, so those
+four should come back near the top. The bus question is the weak one. Its answer
+is in `guide_regional_transport.md`, which has no town name in its title, and
+the answer is one clause in a paragraph about timetables. Its best distance in
+Milestone 4 was 0.575, the worst of my five. I allow that one to miss. 5 of 5
+would make the criterion depend on that single question.
 
 ---
 
@@ -33,8 +38,13 @@ contains the answer.
 Every answer the system produces names at least one source document.
 
 **Why this target:**
-<!-- Why all five and not four? What about your setup makes that achievable —
-     or what would have to go wrong for it not to be? -->
+Naming a source doesn't depend on retrieval doing well. In Milestone 4 I made
+`GROUNDING_INSTRUCTION` in `generate.py` require every answer to end with a
+`Source:` line, and every chunk carries its file name into the prompt. So
+nothing about a particular question makes a source line harder to produce. A
+missing one would mean the model ignored a direct instruction, and that would be
+a real failure, not bad luck on a hard question. That's why the target is all
+five, not four.
 
 ---
 
@@ -50,8 +60,12 @@ in at least 4 of 5 tries.
      just keep five of them, or the "4 of 5" above has nothing to be 4 of. -->
 
 **Why this target:**
-<!-- What did your distances look like when you set the cutoff in Milestone 4?
-     Was there a clean gap, or did the two groups overlap? -->
+In Milestone 4 my in-corpus questions scored 0.160–0.575 and the out-of-corpus
+ones 0.810–0.969, with no overlap. I set the cutoff at 0.70, inside that gap. The
+closest out-of-corpus question, Mongolia at 0.810, is only 0.11 above the
+cutoff. That's not a wide margin given that a paraphrased bus question scored
+0.824. So I allow one miss rather than claim 5 of 5. I don't go lower than 4
+because the gap was clean on all five questions I actually measured.
 
 ---
 
