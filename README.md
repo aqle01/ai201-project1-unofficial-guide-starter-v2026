@@ -479,27 +479,131 @@ retrieval.
 
 ## The Improvement
 
-**What I changed:**
+**What I changed:** I stopped making each guide's intro paragraph its own
+"Overview" chunk. In `chunker.py::split_documents` the intro is now folded into
+the guide's first section, so "An honest assessment rather than a promotional
+one" sits at the top of the "Straightforward" chunk instead of standing alone.
+That took the index from 85 chunks to 76. Nothing else changed: same prefix,
+same 800-character cap, same top-k 5, cutoff 0.70 and prompt.
 
-**Why I picked it:**
+**Why I picked it:** my diagnosis found that the mobility answer ranked 4th
+because a 183-character Overview chunk was mostly its prefix line, and that
+prefix happens to match the question. Removing the stand-alone Overview chunk
+removes the thing that was outranking the answer.
 
-<!-- Connect it to a specific diagnosis above in one sentence. If you can't,
-     you picked a fix because it sounded impressive. -->
+Before running the full test, I compared three chunkings on answer rank alone
+(embeddings only, no model calls). That's how I picked this change over the
+other obvious one, dropping Overview chunks entirely:
+
+| Chunking | Chunks | Kestrelford | Elder Ness | Halden Bay | Mobility | Bus |
+|---|---|---|---|---|---|---|
+| Current (Overview as own chunk) | 85 | 1 | 1 | 2 | **4** | 1 |
+| Drop Overview chunks | 75 | 1 | 1 | 2 | 3 | 1 |
+| Fold Overview into first section | 76 | 1 | 1 | 2 | **1** | 1 |
+
+Dropping them only got the mobility answer to 3rd, and it throws away facts
+that are only in the intros, like Halden Bay's population and Marchwood being
+the rail junction. (This quick check counted any chunk with "10am" for Halden
+Bay, so it counted the seasons guide. The full run below uses the chunk that
+directly states the answer.)
 
 ### Run Log — After
 
 <!-- Same format, same five criteria, three runs each.
      `python run_eval.py --label after` -->
 
+Raw results: [`results/run_2026-10-24_1646_after.md`](results/run_2026-10-24_1646_after.md)
+(`python run_eval.py --label after`, 15 model calls, caching off, same five
+questions, scored by hand the same way as before).
+
 | Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
 |---|---|---|---|---|---|
-| 1. Retrieved chunk contains the answer | 4 of 5 |  |  |  |  |
-| 2. Every answer names a source | 5 of 5 |  |  |  |  |
-| 3. Gate stops out-of-corpus questions | 4 of 5 |  |  |  |  |
-| 4. | | | | | |
-| 5. | | | | | |
+| 1. Retrieved chunk contains the answer | 4 of 5 | 5/5 | 5/5 | 5/5 | MET |
+| 2. Every answer names a source | 5 of 5 | 5/5 | 5/5 | 5/5 | MET |
+| 3. Gate stops out-of-corpus questions | 4 of 5 | 5/5 | 5/5 | 5/5 | MET |
+| 4. Answer chunk ranks in the top 3 | 4 of 5 | 5/5 | 5/5 | 5/5 | MET |
+| 5. `Source:` names a file that contains the answer | 4 of 5 | 5/5 | 5/5 | 5/5 | MET |
+
+Before and after, side by side:
+
+| Criterion | Before (runs 1/2/3) | After (runs 1/2/3) |
+|---|---|---|
+| 1. Retrieved chunk contains the answer | 5/5 · 5/5 · 5/5 | 5/5 · 5/5 · 5/5 |
+| 2. Every answer names a source | 5/5 · 5/5 · 5/5 | 5/5 · 5/5 · 5/5 |
+| 3. Gate stops out-of-corpus questions | 5/5 · 5/5 · 5/5 | 5/5 · 5/5 · 5/5 |
+| 4. Answer chunk ranks in the top 3 | 4/5 · 4/5 · 4/5 | **5/5 · 5/5 · 5/5** |
+| 5. `Source:` names a file that contains the answer | 5/5 · 5/5 · 5/5 | 5/5 · 5/5 · 5/5 |
+| *Tightened criterion 1: top-ranked chunk has the answer* | *3/5* | ***4/5*** |
+
+Rank of the answer chunk and best distance per question, from
+`app.py::cmd_retrieve`:
+
+| Question | Before rank | After rank | Before best | After best |
+|---|---|---|---|---|
+| Kestrelford pubs | 1 | 1 | 0.160 | 0.160 |
+| Elder Ness flooding | 1 | 1 | 0.282 | 0.272 |
+| Halden Bay car parks | 2 | **3** | 0.289 | 0.289 |
+| Limited mobility | **4** | **1** | 0.386 | 0.482 |
+| Bus operators | 1 | 1 | 0.575 | 0.575 |
+
+Out-of-corpus best distances (`run_eval.py::check_out_of_scope`):
+
+```
+Before                                   After
+refused  (best distance 0.810)  Mongolia   refused  (best distance 0.854)
+refused  (best distance 0.881)  Oil        refused  (best distance 0.901)
+refused  (best distance 0.969)  World Cup  refused  (best distance 1.002)
+refused  (best distance 0.835)  Ibuprofen  refused  (best distance 0.835)
+refused  (best distance 0.861)  Rust       refused  (best distance 0.858)
+```
+
+Real output for the question the change was aimed at, after
+(`app.py::cmd_retrieve`, then run 1 from `run_eval.py::run_once`):
+
+```
+Question: Which town in the region is easiest to get around with limited mobility?
+
+#   distance   source                           preview
+----------------------------------------------------------------------------------------------------
+1   0.4825     guide_accessibility.md           Getting around the region with limited mobility — St...
+2   0.4997     guide_accessibility.md           Getting around the region with limited mobility — Di...
+3   0.5348     guide_corry_vale.md              Corry Vale — Getting around  Nothing within the vall...
+4   0.5374     guide_corry_vale.md              Corry Vale — Getting there  Corry Vale is not a town...
+5   0.5526     guide_walking.md                 Walking in the region — Moderate, with hills  The **...
+```
+
+```
+Thornby Wells is the easiest town in the region to get around with limited mobility because it is flat, compact, and everything is within three minutes of everything else.
+
+Source: guide_accessibility.md
+```
 
 **Did it help?**
+
+Yes, for the problem it targeted. Criterion 4 went from 4/5 to 5/5 on all three
+runs, and the mobility answer went from 4th to 1st, because the fact-free
+chunk that outranked it no longer exists. The answers themselves didn't change.
+They were already correct before, because top-k 5 still caught the answer chunk.
+So this change is about margin, not about fixing a wrong answer.
+
+It also made one thing worse, by the same mechanism in reverse. Folding Halden
+Bay's intro ("a working fishing port of 8,000...") into "Getting there"
+added two sentences with nothing about parking to the chunk that holds the
+answer. That chunk moved from 0.326 to 0.379 and from 2nd to 3rd, still inside
+the top 3 but with less room. The intro diluted the answer chunk instead of
+drowning it out.
+
+Two other side effects:
+
+- **The gate's margin widened.** The nearest out-of-corpus question went from
+  0.810 to 0.835, so the gap above my 0.70 cutoff grew. My guess is that the
+  short, generic Overview chunks were the closest thing in the corpus to
+  general questions like "What is the capital of Mongolia?" I didn't check
+  which chunk Mongolia matched before the change, so that's unconfirmed.
+- **The accessibility guide's first section is now over the 800-character
+  cap,** so `_pack` splits it. The second piece is a 2-sentence tail about
+  Brightwater's station. It didn't affect any test question, but it's the kind
+  of short chunk that caused this problem in the first place.
 
 <!-- Say plainly whether it did, and how you know. If it made things worse,
      say that — a change that backfired, honestly reported, earns full credit

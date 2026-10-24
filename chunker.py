@@ -110,8 +110,14 @@ def split_documents(documents: list[Document]) -> list[Chunk]:
     otherwise have to carry, so neighbouring sections share no text.
 
     Any section longer than CHUNK_SIZE is split at sentence boundaries, with
-    SECTION_OVERLAP_SENTENCES sentences repeated between the pieces. No
-    section in city_guides is that long today; this is the safety net.
+    SECTION_OVERLAP_SENTENCES sentences repeated between the pieces. The
+    accessibility guide's first section is the only one that needs it.
+
+    Unit 2 change: the intro paragraph before the first "## " is folded into
+    the first section instead of being its own "Overview" chunk. On its own it
+    was short, mostly prefix, and usually fact-free, so the prefix alone pulled
+    it to the top — "An honest assessment rather than a promotional one" was
+    the top result for the mobility question, ahead of the answer.
     """
     import re
 
@@ -123,21 +129,26 @@ def split_documents(documents: list[Document]) -> list[Chunk]:
             body = doc.text
 
         pieces: list[str] = []
+        intro = ""
         for section in re.split(r"\n(?=## )", body):
             section = section.strip()
             if not section:
                 continue
-            if section.startswith("## "):
-                heading, _, text = section.partition("\n")
-                heading = heading[3:].strip()
-            else:
-                heading, text = "Overview", section   # intro before the first ##
+            if not section.startswith("## "):
+                intro = section     # held for the first section, not its own chunk
+                continue
+            heading, _, text = section.partition("\n")
+            heading = heading[3:].strip()
             text = text.strip()
             if not text:
                 continue
+            if intro:
+                text, intro = f"{intro}\n\n{text}", ""
             prefix = f"{title} — {heading}\n\n"
             for part in _pack(text, config.CHUNK_SIZE - len(prefix), config.SECTION_OVERLAP_SENTENCES):
                 pieces.append(prefix + part)
+        if intro:   # a document with no "## " sections at all
+            pieces.append(f"{title} — Overview\n\n{intro}")
 
         for index, piece in enumerate(pieces):
             chunks.append(
