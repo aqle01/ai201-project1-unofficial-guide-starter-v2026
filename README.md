@@ -390,6 +390,93 @@ the real weakness.
 
      Milestone 3. -->
 
+**I missed no criterion.** That's mostly because the targets were safe, not
+because retrieval is good. Below are the two places where the answer was not
+the top-ranked chunk, why that happened, and which target I'd tighten.
+
+### The mobility question: answer chunk ranks 4th (stage: chunking, via the prefix)
+
+"Which town in the region is easiest to get around with limited mobility?" The
+answer is in the accessibility guide's "Straightforward" chunk, which ranks 4th
+at 0.549. The top result is that guide's Overview chunk at 0.386. Its body is
+one sentence with no facts: "An honest assessment rather than a promotional
+one."
+
+The mechanism is the `Title — Section` prefix I add in `chunker.py::split_documents`.
+This guide's title is "Getting around the region with limited mobility", which
+is almost word for word the question. So every chunk from this guide starts
+with a line that matches the question, and how much that line counts depends
+on how much else is in the chunk. I measured it with `diagnose_prefix.py`,
+which embeds each chunk whole, without its prefix, and the prefix alone:
+
+```
+$ python diagnose_prefix.py "Which town in the region is easiest to get around with limited mobility?" guide_accessibility.md
+
+chunk                                         chars   whole    body  prefix
+d the region with limited mobility — Overview   183   0.386   0.897   0.245
+egion with limited mobility — Straightforward   758   0.549   0.543   0.242
+ound the region with limited mobility — Mixed   481   0.659   0.730   0.262
+ the region with limited mobility — Difficult   566   0.500   0.608   0.213
+ the region with limited mobility — Practical   378   0.660   0.700   0.244
+```
+
+- The Overview body on its own is 0.897, as far away as "Who won the 1994
+  World Cup?". All of its closeness comes from the prefix, and at 183
+  characters it is mostly prefix.
+- The Straightforward chunk gets nothing from the prefix (0.543 without it,
+  0.549 with it). It is the longest chunk in the corpus (758 characters) and
+  covers three towns, so the prefix line is a small share of it. The Thornby
+  Wells sentence is one sentence out of nine.
+- Without prefixes, Straightforward would be the closest chunk in this guide.
+
+So the prefix did what I wanted in Milestone 3 for town guides, where it
+supplies a missing town name. Here it does the opposite: it rewards the
+shortest, emptiest chunk because the title already matches the question. It is
+a chunking decision showing up as a ranking problem. The embedding model is
+doing what it should with the text it was given.
+
+It didn't break the answer, because top-k is 5 and the model still saw the
+Straightforward chunk. With top-k 3 it wouldn't have. Criterion 1 passed
+because of the top-5 window, not because retrieval found the answer first.
+
+### The Halden Bay question: answer chunk ranks 2nd (stage: embedding)
+
+"By what time do the Halden Bay car parks fill up on summer weekends?" The top
+result is "Halden Bay — When to go" (0.289), which says "July and August are
+busy enough that the parking problem becomes the defining feature of the visit"
+but gives no time. The answer, "two small lots that fill by 10am on summer
+weekends", is in "Getting there" at 0.326.
+
+This one isn't the prefix: both chunks share "Halden Bay", and When to go is
+closer even with prefixes stripped (0.394 against 0.452). The embedding matches
+on topic (summer, busy, parking) and has no notion of whether a chunk contains
+the specific fact being asked for. "Getting there" spends most of its words on
+the coast road and buses, so its parking sentence is diluted.
+
+### The pattern
+
+Both cases are the same problem. **Retrieval ranks chunks by topic, and a chunk
+that is about the question's topic but doesn't answer it beats a longer chunk
+that does.** The bus question shows it too: "Marchwood — Overview" ("the
+junction everyone changes trains at") is 2nd there, with nothing about bus
+operators. Overview chunks are the worst offenders. Every guide has one, they
+are short, and they are written as general scene-setting rather than facts. In
+the accessibility guide the prefix makes this much worse.
+
+I ruled out the other stages. Loading: every document loaded and the
+boilerplate was stripped as intended. Generation: all 15 answers were correct
+and cited a file that contains the answer, so the model used the chunks it got.
+
+### Which target I'd tighten
+
+**Criterion 1, to "the top-ranked chunk contains the answer for at least 4 of
+5 questions."** "Somewhere in the top 5" is a loose window when each chunk is a
+whole section. With 85 chunks, five sections from the right guide can easily
+include the answer by accident. Against the tighter version my system scores
+3 of 5 (Kestrelford, Elder Ness, bus operators are rank 1; Halden Bay is 2nd,
+mobility 4th), so it would be **missed**. That's the honest picture of my
+retrieval.
+
 ## The Improvement
 
 **What I changed:**
