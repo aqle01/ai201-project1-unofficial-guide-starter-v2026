@@ -211,15 +211,139 @@ What 0.70 gets wrong, which I checked on extra questions:
 
 | Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
 |---|---|---|---|---|---|
-| 1. Retrieved chunk contains the answer | 4 of 5 |  |  |  |  |
-| 2. Every answer names a source | 5 of 5 |  |  |  |  |
-| 3. Gate stops out-of-corpus questions | 4 of 5 |  |  |  |  |
-| 4. | | | | | |
-| 5. | | | | | |
+| 1. Retrieved chunk contains the answer | 4 of 5 | 5/5 | 5/5 | 5/5 | MET |
+| 2. Every answer names a source | 5 of 5 | 5/5 | 5/5 | 5/5 | MET |
+| 3. Gate stops out-of-corpus questions | 4 of 5 | 5/5 | 5/5 | 5/5 | MET |
+| 4. Answer chunk ranks in the top 3 | 4 of 5 | 4/5 | 4/5 | 4/5 | MET |
+| 5. `Source:` names a file that contains the answer | 4 of 5 | 5/5 | 5/5 | 5/5 | MET |
 
-<!-- Underneath, paste the REAL output for each criterion from one of your
-     runs — the actual text your system produced, not a description of it.
-     Name the file and function that produced it. -->
+Raw results: [`results/run_2026-10-24_1614_before.md`](results/run_2026-10-24_1614_before.md)
+(`python run_eval.py --label before`, 15 model calls, caching off). No
+`scorer.py` yet, so I scored every cell by reading the answers against the
+`expects` phrase in `questions.py`.
+
+Criteria 1, 3 and 4 depend only on retrieval, which is deterministic: the best
+distance was identical on all three runs for every question. So they come out
+the same in every column. The answers did change between runs. For example, the
+Elder Ness answer was one long sentence in run 1 and a shorter one in runs 2
+and 3, which confirms these were three real calls rather than a cached reply.
+
+### Output — criterion 1 (retrieved chunk contains the answer)
+
+From `run_eval.py::run_once` (retrieval by `store.py::search`, answer by
+`generate.py::answer_from_chunks`), run 1, the weakest of my five questions:
+
+```
+### How many bus operators run in the region, and do they accept each other's tickets? — run 1
+
+- Best distance: 0.5748 (passed the gate)
+- Sources retrieved: guide_givens_mill.md, guide_marchwood.md, guide_regional_transport.md
+
+Three operators run in the region, and they do not accept each other's tickets.
+
+Source: guide_regional_transport.md
+```
+
+The run log lists sources but not chunk text. To check which chunk held the
+answer, I ran `python app.py retrieve` (`app.py::cmd_retrieve`). Rank 1 is the
+Buses section, which begins "Three operators run in the region and they do not
+accept each other's tickets":
+
+```
+#   distance   source                           preview
+----------------------------------------------------------------------------------------------------
+1   0.5748     guide_regional_transport.md      Getting around the region — Buses  Three operators r...
+2   0.6589     guide_marchwood.md               Marchwood — Overview  Marchwood is the regional hub ...
+3   0.6837     guide_givens_mill.md             Givens Mill — Getting there  No station and no bus o...
+4   0.6971     guide_marchwood.md               Marchwood — Getting around  A tram network of four l...
+5   0.7010     guide_regional_transport.md      Getting around the region — The railway  The line ru...
+```
+
+### Output — criterion 2 (every answer names a source)
+
+From `generate.py::answer_from_chunks` via `run_eval.py::run_once`, run 1, all
+five answers:
+
+```
+The pubs in Kestrelford serve food in the evening until 8:30.
+
+Source: guide_kestrelford.md, guide_eating.md
+```
+
+```
+The single road into Elder Ness floods at the highest spring tides roughly six times a year, for about two hours either side of high water.
+
+Source: guide_elder_ness.md, guide_walking.md
+```
+
+```
+On summer weekends, the Halden Bay car parks fill up by 10am. 
+
+Source: guide_halden_bay.md, guide_seasons.md, guide_regional_transport.md
+```
+
+```
+Thornby Wells is the easiest town in the region to get around with limited mobility because it is flat, compact, and everything is within three minutes of everything else. 
+
+Source: guide_accessibility.md
+```
+
+```
+Three operators run in the region, and they do not accept each other's tickets.
+
+Source: guide_regional_transport.md
+```
+
+### Output — criterion 3 (gate stops out-of-corpus questions)
+
+From `run_eval.py::check_out_of_scope` (`gate.py::check`, cutoff 0.70), console
+output:
+
+```
+Out-of-scope questions (the gate should refuse these):
+  refused  (best distance 0.810)  What is the capital of Mongolia?
+  refused  (best distance 0.881)  How do I change the oil in a diesel engine?
+  refused  (best distance 0.969)  Who won the 1994 World Cup?
+  refused  (best distance 0.835)  What is the recommended dosage of ibuprofen for a headache?
+  refused  (best distance 0.861)  How do I write a for loop in Rust?
+  -> gate refused 5 of 5
+```
+
+### Output — criterion 4 (answer chunk ranks in the top 3)
+
+From `app.py::cmd_retrieve` (`python app.py retrieve "..."`). Where the answer
+chunk ranked: Kestrelford 1, Elder Ness 1, Halden Bay 2 ("Getting there"; the
+"When to go" section ranks above it), bus operators 1, mobility **4**. This is
+the miss:
+
+```
+Question: Which town in the region is easiest to get around with limited mobility?
+
+#   distance   source                           preview
+----------------------------------------------------------------------------------------------------
+1   0.3855     guide_accessibility.md           Getting around the region with limited mobility — Ov...
+2   0.4997     guide_accessibility.md           Getting around the region with limited mobility — Di...
+3   0.5348     guide_corry_vale.md              Corry Vale — Getting around  Nothing within the vall...
+4   0.5491     guide_accessibility.md           Getting around the region with limited mobility — St...
+5   0.5526     guide_walking.md                 Walking in the region — Moderate, with hills  The **...
+```
+
+The answer ("**Thornby Wells** is the easiest town in the region") is in the
+"Straightforward" chunk at rank 4. The fact-free Overview chunk is at rank 1.
+
+### Output — criterion 5 (`Source:` names a file that contains the answer)
+
+Same answers as criterion 2. I checked each cited file for the answer phrase.
+Every answer cites at least one file that contains it, on all three runs. The
+extra files it cites contain the answer too:
+
+| Question | Cited | Contains the answer? |
+|---|---|---|
+| Kestrelford pubs | guide_kestrelford.md, guide_eating.md | both ("6 to 8:30") |
+| Elder Ness flooding | guide_elder_ness.md, guide_walking.md | both ("six times a year") |
+| Halden Bay car parks | guide_halden_bay.md, guide_seasons.md, guide_regional_transport.md | all three ("10am") |
+| Limited mobility | guide_accessibility.md | yes ("Thornby Wells") |
+| Bus operators | guide_regional_transport.md | yes ("Three operators") |
 
 ## Verdicts
 

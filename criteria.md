@@ -69,9 +69,16 @@ in at least 4 of 5 tries.
        - "No chunk is shorter than 200 characters, since anything below that
           in my corpus turned out to be a heading with no content under it." -->
 
-
+For at least 4 of my 5 test questions, the chunk that contains the answer ranks
+in the top 3 of the retrieved results, not just somewhere in the top 5.
 
 **Why this target:**
+In Milestone 3 I saw that every guide's intro paragraph becomes its own
+"Overview" chunk with no facts in it. The accessibility guide's Overview is the
+top result for my mobility question, and the chunk with the answer is 4th. So
+"the answer is somewhere in the top 5" can pass even when empty chunks are
+pushing the real one down. Top 3 is where that would show. I expect the
+mobility question to be the one that misses.
 
 
 
@@ -87,9 +94,16 @@ in at least 4 of 5 tries.
      present — anything, as long as it names a number or an observable
      outcome. -->
 
-
+In at least 4 of my 5 test answers, the `Source:` line names a file that
+actually contains the answer, not just any file that happened to be retrieved.
 
 **Why this target:**
+Criterion 2 only checks that a source is named. Retrieval always brings back
+three to five files, so the model can name one that is near the topic but
+doesn't hold the fact. That happens most with the cross-cutting guides
+(eating, seasons, transport). Several of my answers sit in more than one file,
+so I count a cited file as correct if it states the answer. I allow one miss
+because the bus answer is one clause in a paragraph about timetables.
 
 
 
