@@ -15,6 +15,12 @@ pipeline earns credit; *"80% seemed reasonable"* does not.
 > Missing your own targets next unit costs you nothing. Setting a target so
 > easy you can't miss it does.
 
+> **Timing note:** criteria 1–3 and their targets are from unit 1. Their
+> "Why this target" reasons and all of criteria 4 and 5 were written at the
+> start of unit 2 (commits `00cdca3` and `fc365ef`). I chose 4 and 5 before
+> reading any unit 2 results, but after the first run had started. See
+> "What I'd Do Differently" in the README.
+
 ---
 
 ## 1. Retrieved chunks contain the answer
