@@ -201,10 +201,7 @@ What 0.70 gets wrong, which I checked on extra questions:
   using embeddings only. That showed folding the intro beat dropping it
   (rank 1 against rank 3) without spending model calls on a fix that wouldn't
   work.
-- *Writing.* It drafted criteria 4 and 5 as options for me to choose from,
-  wrote the "why this target" reasons for criteria 1–3, and drafted most of
-  the unit 2 write-up. It flagged that criteria 4 and 5 were written after the
-  run had started, which is why that's noted above.
+
 
 <!-- ── Stretch features ─────────────────────────────────────────────────────
      Doing one? Say so here BEFORE you start. A feature this README never
