@@ -180,32 +180,9 @@ What 0.70 gets wrong, which I checked on extra questions:
 <!-- TODO — you write this. Two specific moments: what you asked, what came
      back, what you changed. -->
 
-I used Claude Code (Claude Opus) as a coding agent for nearly all of unit 1.
-I asked it to do the project for me, and it wrote the code, the measurements
-and most of this README. These two moments are reconstructed from the session
-log.
+**1.**
 
-**1. The install, and the chunker.** The first install failed:
-`chroma-hnswlib` has no prebuilt wheel for Python 3.13 on Windows. Claude
-rebuilt the virtual environment on Python 3.11 with `uv` instead of trying to
-compile it. Then, before writing the chunker, it read the guides and found two
-things I hadn't noticed. Some files are hard-wrapped at about 80 columns. And
-all nine town guides end with the same "Practical notes" block, which even
-contradicts `guide_accessibility.md` about where the hospital is. That's why
-`ingest.py` has `strip_boilerplate` and the unwrapping step. While writing the
-cleaning it also caught its own bug: one regex did nothing, and another would
-have glued body text onto a heading. It replaced both with a line-based
-version. I kept what it wrote without changing it.
-
-**2. The cutoff, and where it stopped.** Claude measured the best distance for
-my five questions and the five out-of-scope ones, and set the cutoff at 0.70 in
-the gap. It also tested "Is there a ferry from Halden Bay to France?", which
-passes the gate at 0.438. That's why the grounding instruction was tightened to
-refuse near-misses. When I asked it to write criteria 4 and 5, the "why"
-reasons and this section, it refused, because the course says AI shouldn't
-write the criteria. It gave me questions to answer instead. I left those parts
-blank in unit 1, and they were written by Claude in unit 2 (see below and the
-timing note in `criteria.md`).
+**2.**
 
 **Unit 2.** I used Claude Code (Claude Opus) as a coding agent for this unit.
 
